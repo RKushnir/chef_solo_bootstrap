@@ -1,0 +1,44 @@
+#!/usr/bin/env ruby
+
+$:.unshift File.expand_path("../../lib", __FILE__)
+
+require "thor"
+require "chef_solo_bootstrap"
+
+class ChefSoloBootstrap::CLI < Thor
+  include Thor::Actions
+
+  source_root File.expand_path("../..", __FILE__)
+
+  desc "init NAME", "initialize a chef-solo project"
+  def init(name)
+    template('templates/Gemfile.tt',   "#{name}/Gemfile")
+    template('templates/Berksfile.tt', "#{name}/Berksfile")
+
+    inside(name) do
+      run(%Q{bundle install})
+      run(%Q{knife solo init .})
+
+      run(%Q{vagrant plugin install vagrant-berkshelf --plugin-version '>= 2.0.1'})
+      run(%Q{vagrant plugin install vagrant-omnibus})
+      run(%Q{vagrant init precise64 http://files.vagrantup.com/precise64.box})
+    end
+
+    insert_into_file "#{name}/Vagrantfile", <<-CHEF_SOLO, :before => %q{  # config.vm.provision "chef_solo" do |chef|}
+  config.berkshelf.enabled = true
+  config.omnibus.chef_version = :latest
+  config.vm.provision "chef_solo" do |chef|
+    chef.json = {
+      authorization: {
+        sudo: {
+          users:        ["vagrant"],
+          passwordless: true
+        }
+      }
+    }
+  end
+CHEF_SOLO
+  end
+end
+
+ChefSoloBootstrap::CLI.start

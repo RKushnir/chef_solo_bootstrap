@@ -1,0 +1,10 @@
+source "https://api.berkshelf.com"
+
+cookbook 'apt'
+cookbook 'git'
+cookbook 'sudo'
+cookbook 'runit'
+cookbook 'users'
+cookbook 'chef-solo-search'
+cookbook 'nginx'
+cookbook 'postgresql'
